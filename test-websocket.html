@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Notification Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #2563eb;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #ef4444;
+    }
+    
+    .status-indicator.connected {
+      background-color: #22c55e;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+    }
+    
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    
+    .notifications {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .notification {
+      padding: 12px;
+      border-radius: 4px;
+      border-left: 4px solid #2563eb;
+    }
+    
+    .notification.error {
+      border-left-color: #ef4444;
+      background-color: #fee2e2;
+    }
+    
+    .notification.warning {
+      border-left-color: #f59e0b;
+      background-color: #fef3c7;
+    }
+    
+    .notification.info {
+      border-left-color: #3b82f6;
+      background-color: #eff6ff;
+    }
+    
+    .notification.feedback {
+      border-left-color: #8b5cf6;
+      background-color: #f5f3ff;
+    }
+    
+    .notification h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    
+    .notification p {
+      margin: 0;
+      color: #4b5563;
+    }
+    
+    .timestamp {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+    
+    pre {
+      background-color: #f3f4f6;
+      border-radius: 4px;
+      padding: 8px;
+      overflow: auto;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>WebSocket Notification Test</h1>
+    
+    <div class="card">
+      <div class="connection-status">
+        <div id="status-indicator" class="status-indicator"></div>
+        <div id="connection-status">Disconnected</div>
+      </div>
+      <div id="connection-info"></div>
+    </div>
+    
+    <div class="card">
+      <h2>Test Notification</h2>
+      <form id="notification-form">
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" value="Test Notification" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="3" required>This is a test notification from the WebSocket test page.</textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="type">Type</label>
+          <select id="type" name="type">
+            <option value="info">Info</option>
+            <option value="warning">Warning</option>
+            <option value="error">Error</option>
+            <option value="feedback">Feedback</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="link">Link (Optional)</label>
+          <input type="text" id="link" name="link" value="/feedback">
+        </div>
+        
+        <button type="submit">Send Test Notification</button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h2>WebSocket Messages</h2>
+      <pre id="messages"></pre>
+    </div>
+    
+    <div class="card">
+      <h2>Notifications</h2>
+      <div id="notifications" class="notifications"></div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const statusIndicator = document.getElementById('status-indicator');
+      const connectionStatus = document.getElementById('connection-status');
+      const connectionInfo = document.getElementById('connection-info');
+      const messagesElement = document.getElementById('messages');
+      const notificationsElement = document.getElementById('notifications');
+      const notificationForm = document.getElementById('notification-form');
+      
+      let socket = null;
+      let messages = [];
+      
+      function connectWebSocket() {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        socket = new WebSocket(wsUrl);
+        
+        socket.onopen = function() {
+          statusIndicator.classList.add('connected');
+          connectionStatus.textContent = 'Connected';
+          connectionInfo.textContent = `Connected to ${wsUrl}`;
+          addMessage('WebSocket connection established');
+        };
+        
+        socket.onclose = function() {
+          statusIndicator.classList.remove('connected');
+          connectionStatus.textContent = 'Disconnected';
+          connectionInfo.textContent = 'Connection closed. Reconnecting in 3 seconds...';
+          addMessage('WebSocket connection closed');
+          
+          // Attempt to reconnect
+          setTimeout(connectWebSocket, 3000);
+        };
+        
+        socket.onerror = function(error) {
+          addMessage(`WebSocket error: ${error}`);
+        };
+        
+        socket.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            addMessage(`Received: ${JSON.stringify(data, null, 2)}`);
+            
+            if (data.type === 'notification' && data.notification) {
+              addNotification(data.notification);
+            }
+          } catch (err) {
+            addMessage(`Error parsing message: ${err}`);
+          }
+        };
+      }
+      
+      function addMessage(message) {
+        const now = new Date();
+        const timestamp = `${now.toLocaleTimeString()}`;
+        messages.unshift(`[${timestamp}] ${message}`);
+        
+        // Limit to last 10 messages
+        if (messages.length > 10) {
+          messages = messages.slice(0, 10);
+        }
+        
+        messagesElement.textContent = messages.join('\n');
+      }
+      
+      function addNotification(notification) {
+        const notificationElement = document.createElement('div');
+        notificationElement.className = `notification ${notification.type || 'info'}`;
+        
+        const title = document.createElement('h3');
+        title.textContent = notification.title;
+        
+        const message = document.createElement('p');
+        message.textContent = notification.message;
+        
+        const timestamp = document.createElement('div');
+        timestamp.className = 'timestamp';
+        timestamp.textContent = new Date(notification.timestamp).toLocaleString();
+        
+        notificationElement.appendChild(title);
+        notificationElement.appendChild(message);
+        
+        if (notification.link) {
+          const link = document.createElement('p');
+          link.innerHTML = `<a href="${notification.link}">View details</a>`;
+          notificationElement.appendChild(link);
+        }
+        
+        notificationElement.appendChild(timestamp);
+        
+        notificationsElement.prepend(notificationElement);
+        
+        // Limit to 5 notifications
+        if (notificationsElement.children.length > 5) {
+          notificationsElement.removeChild(notificationsElement.lastChild);
+        }
+      }
+      
+      notificationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('title').value;
+        const message = document.getElementById('message').value;
+        const type = document.getElementById('type').value;
+        const link = document.getElementById('link').value;
+        
+        fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title,
+            message,
+            type,
+            link: link || undefined,
+            data: {
+              testData: true,
+              timestamp: new Date()
+            }
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          addMessage(`Notification sent: ${JSON.stringify(data, null, 2)}`);
+        })
+        .catch(error => {
+          addMessage(`Error sending notification: ${error}`);
+        });
+      });
+      
+      // Initialize connection
+      connectWebSocket();
+    });
+  </script>
+</body>
+</html>
