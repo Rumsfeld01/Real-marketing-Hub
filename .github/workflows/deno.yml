@@ -15,21 +15,31 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: read
+  contents: read  # This grants read access to the contents of the repository
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        # uses: denoland/setup-deno@v1
+        # Using the latest Deno setup action
         uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
         with:
-          deno-version: v1.x
+          deno-version: v1.x  # Using the latest version of Deno
+
+      # Uncomment this step to verify the use of 'deno fmt' on each commit.
+      # - name: Verify formatting
+      #   run: deno fmt --check
+
+      - name: Run linter
+        run: deno lint --unstable  # Optionally, use --unstable to run all linting rules, including experimental ones.
+
+      - name: Run tests
+        run: deno test --allow-env --allow-read --allow-write --unstable # Provide permissions for tests to run correctly
 
       # Uncomment this step to verify the use of 'deno fmt' on each commit.
       # - name: Verify formatting
