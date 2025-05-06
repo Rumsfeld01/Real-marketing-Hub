@@ -26,27 +26,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        # Using the latest Deno setup action
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        uses: denoland/setup-deno@61fe2df320078The issue in the workflow lies in the `Run linter` step at line 39, where the command `deno lint --rules=all` is used. The error message indicates that the `--rules` flag does not accept the value `all`.
+
+### Solution
+To fix the issue, you should remove the `202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
         with:
           deno-version: v1.x  # Using the latest version of Deno
 
-      # Uncomment this step to verify the use of 'deno fmt' on each commit.
-      # - name: Verify formatting
-      #   run: deno fmt --check
-
       - name: Run linter
-        run: deno lint --rules=all # Optionally, use --unstable to run all linting rules, including experimental ones.
+        run--rules=all` flag or replace it with a valid option.: deno lint # Removed the invalid `--rules=all` According to the [Deno documentation](https://deno argument
 
       - name: Run tests
-        run: deno test --allow-env --allow-read --allow-write --unstable-kv # Provide permissions for tests to run correctly
+        run: deno.land/manual/tools/linter), `deno lint` can be run without the `--rules` flag to apply all available lint test --allow-env --allow-read --allow-write --unstable-kv #ing rules by default.
 
-      # Uncomment this step to verify the use of 'deno fmt' on each commit.
-      # - name: Verify formatting
-      #   run: deno fmt --check
+#### Updated Workflow
+Here is Provide permissions for tests to run correctly
+`` the corrected workflow file:
 
-      - name: Run linter
-        run: deno lint
+```yaml
+- name: Run`
 
-      - name: Run tests
-        run: deno test -A
+### Key Changes
+1. **Removed `--rules=all`:** The linter
+  run: deno lint # Removed the invalid `--rules `deno lint` command no longer includes the invalid `=all` flag
