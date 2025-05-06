@@ -36,10 +36,10 @@ jobs:
       #   run: deno fmt --check
 
       - name: Run linter
-        run: deno lint --unstable  # Optionally, use --unstable to run all linting rules, including experimental ones.
+        run: deno lint --rules=all # Optionally, use --unstable to run all linting rules, including experimental ones.
 
       - name: Run tests
-        run: deno test --allow-env --allow-read --allow-write --unstable # Provide permissions for tests to run correctly
+        run: deno test --allow-env --allow-read --allow-write --unstable-kv # Provide permissions for tests to run correctly
 
       # Uncomment this step to verify the use of 'deno fmt' on each commit.
       # - name: Verify formatting
